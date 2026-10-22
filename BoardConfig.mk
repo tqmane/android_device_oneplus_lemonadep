@@ -26,3 +26,6 @@ BUILD_BROKEN_MISSING_REQUIRED_MODULES := true
 
 TARGET_NO_RECOVERY := true
 ALLOW_MISSING_DEPENDENCIES := true
+
+# Use the kernel verified with the ColorOS 17 diagnostic recovery.
+TARGET_PREBUILT_KERNEL := $(DEVICE_PATH)/prebuilt/Image
