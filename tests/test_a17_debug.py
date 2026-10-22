@@ -1,27 +1,25 @@
-"""Guard the diagnostic profile; these checks do not establish FBE decryption."""
+"""Preserve normal recovery decryption/startup while selecting the compatible kernel."""
 from pathlib import Path
-import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class A17DebugTest(unittest.TestCase):
-    def test_diagnostic_startup(self):
+    def test_normal_decryption_preserved(self):
         device = (ROOT / 'device.mk').read_text()
-        for name in ('TW_INCLUDE_CRYPTO', 'TW_INCLUDE_CRYPTO_FBE', 'TW_INCLUDE_FBE_METADATA_DECRYPT'):
-            self.assertRegex(device, rf'(?m)^{name} := false$')
-        self.assertNotIn('    qcom_decrypt', device)
+        for name in ('TW_INCLUDE_CRYPTO', 'TW_INCLUDE_CRYPTO_FBE', 'TW_INCLUDE_FBE_METADATA_DECRYPT', 'BOARD_USES_QCOM_FBE_DECRYPTION'):
+            self.assertRegex(device, rf'(?m)^{name} := true$')
+        self.assertIn('    qcom_decrypt', device)
+        self.assertIn('    qcom_decrypt_fbe', device)
         init = (ROOT / 'recovery/root/init.recovery.qcom.rc').read_text()
-        self.assertNotIn('import /init.recovery.qcom_decrypt.rc', init)
-        self.assertNotIn('exec u:r:recovery:s0 -- /system/bin/fix-invalid-vintf-manifest.sh', init)
-        service = (ROOT / 'recovery/root/init.recovery.service.rc').read_text()
-        self.assertIn('service recovery /system/bin/recovery\n    disabled', service)
-        self.assertNotRegex(service, r'(?m)^\s+start recovery$')
+        self.assertIn('import /init.recovery.qcom_decrypt.rc', init)
+        self.assertFalse((ROOT / 'recovery/root/init.recovery.service.rc').exists())
         fstab = (ROOT / 'recovery/root/system/etc/recovery.fstab').read_text()
-        for line in fstab.splitlines():
-            if line.strip() and not line.lstrip().startswith('#'):
-                self.assertNotIn(line.split()[1], ('/data', '/metadata'))
+        rows = {line.split()[1]: line for line in fstab.splitlines() if line.strip() and not line.lstrip().startswith('#')}
+        self.assertIn('/metadata', rows)
+        self.assertIn('fileencryption=', rows['/data'])
+        self.assertIn('metadata_encryption=', rows['/data'])
 
     def test_selected_prebuilts(self):
         self.assertIn('TARGET_PREBUILT_KERNEL := $(DEVICE_PATH)/prebuilt/Image', (ROOT / 'BoardConfig.mk').read_text())

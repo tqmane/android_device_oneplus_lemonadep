@@ -25,7 +25,7 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-
+import /init.recovery.qcom_decrypt.rc
 import /vendor.qti.hardware.vibrator.service.oplus.rc
 
 on init
@@ -60,6 +60,7 @@ on fs
 on boot
     exec u:r:recovery:s0 -- /system/bin/variant-script.sh
     exec u:r:recovery:s0 -- /system/bin/set-timestamp.sh
+    exec u:r:recovery:s0 -- /system/bin/fix-invalid-vintf-manifest.sh
 
 on property:twrp.modules.loaded=true
     # Create a delay to prevent "deadlock," where services and libs are loaded from ROMs vendor partition,
